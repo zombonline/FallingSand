@@ -4,7 +4,7 @@ let rows, cols;
 let hueValue = 1;
 let row;
 
-function sandGrain(hueValue, velocity)
+function cellState(hueValue, velocity)
 {
     this.hueValue = hueValue;
     this.velocity = velocity;
@@ -21,20 +21,11 @@ function setup() {
     {
         for(let j = 0; j < rows; j++)
         {
-            grid[j][i] = new sandGrain(0,1);
+            grid[j][i] = new cellState(0,1);
         }
     }
     noStroke();
     colorMode(HSB, 360, 255, 255);
-}
-
-function inCols(val)
-{
-    return val >= 0 && val < cols;
-}
-function inRows(val)
-{
-    return val >= 0 && val < rows;
 }
 
 function draw() {
@@ -58,7 +49,7 @@ function draw() {
                 let targetCell;
                 for(let k = 1; k <= Math.ceil(vel); k++)
                 {
-                    if(inCols(j+k) && grid[i][j+k].hueValue == 0)
+                    if(isValidRowIndex(j+k) && grid[i][j+k].hueValue == 0)
                     {
                         targetCell = grid[i][j+k];
                         grid[i][j].velocity = vel - (k - Math.ceil(vel));
@@ -78,12 +69,12 @@ function draw() {
                 else
                 {
                     var randomDir = Math.round(Math.random()) * 2 - 1
-                    if(inRows(i+randomDir) && inCols(j+1) && grid[i+randomDir][j+1].hueValue == 0 && grid[i+randomDir][j].hueValue == 0)
+                    if(isValidRowIndex(i+randomDir) && isValidRowIndex(j+1) && grid[i+randomDir][j+1].hueValue == 0 && grid[i+randomDir][j].hueValue == 0)
                     {
                         grid[i+randomDir][j+1].hueValue = grid[i][j].hueValue + 360;
                         grid[i][j].hueValue = 0;
                     }
-                    else if(inRows(i-randomDir) && inCols(j+1) && grid[i-randomDir][j+1].hueValue == 0 && grid[i-randomDir][j].hueValue == 0)
+                    else if(isValidRowIndex(i-randomDir) && isValidRowIndex(j+1) && grid[i-randomDir][j+1].hueValue == 0 && grid[i-randomDir][j].hueValue == 0)
                     {
                         grid[i-randomDir][j+1].hueValue = grid[i][j].hueValue + 360;
                         grid[i][j].hueValue = 0;
@@ -143,10 +134,6 @@ function draw() {
     }
 }
 
-
-
-
-
 function make2DArray(rows, cols)
 {
     let arr = new Array(rows);
@@ -155,4 +142,13 @@ function make2DArray(rows, cols)
         arr[i] = new Array(cols);
     }
     return arr;
+}
+
+function isValidRowIndex(val)
+{
+    return val >= 0 && val < cols;
+}
+function isValidRowIndex(val)
+{
+    return val >= 0 && val < rows;
 }

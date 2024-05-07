@@ -2,9 +2,25 @@
 <html>
 <head>
     <title>p5.js Sketch</title>
+    <link rel="stylesheet" href="style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
 </head>
 <body>
     <script src="sketch.js"></script>
+    <div id="canvas-container"></div>
+    <div id="controls">
+        <button id="reset-button">Reset</button>
+        <button id="apply-settings-button">Apply settings</button>
+
+        <div id="wrap-around-div">
+            <label for="wrap around">Wrap around:</label>
+            <input type="checkbox" id="wrap-around-input" name="wrap around">
+        </div>
+        <div id = "hue-change-rate-div">
+            <label for="hue-change-rate">Hue change rate:</label>
+            <input type="range" id="hue-change-rate-input" name="hue-change-rate" min="0" max="1" step="0.01" value="0.01">
+        </div>
+        
+    </div>
 </body>
 </html>

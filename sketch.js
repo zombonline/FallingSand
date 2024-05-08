@@ -2,10 +2,12 @@ let grid;
 let size = 5;
 let rows, cols;
 let hueValue = 1;
+let previousMouseX = 0;
+let previousMouseY = 0;
 
 //SIM SETTINGS
 let wrapAround;
-let hueChangeRate;
+let hueChangeRate = 0;
 
 function cellState(hueValue, velocity)
 {
@@ -17,14 +19,15 @@ function setup() {
     cnv = createCanvas((windowWidth/3)*2, (windowHeight/3)*2);
     cnv.parent('canvas-container');
     cnv.position((windowWidth/6), (windowHeight/6));    
-    rows = Math.ceil(width / size);
-    cols = Math.ceil(height / size);
+    rows = Math.floor(width / size);
+    cols = Math.floor(height / size);
     grid = make2DArray(rows, cols);
     //SIM SETTINGS
     setSimSettings();
     resetCells();
     noStroke();
     colorMode(HSB, 360, 255, 255);
+    
 }
 
 function resetCells()
@@ -41,14 +44,19 @@ function resetCells()
 function setSimSettings()
 {
     wrapAround = select('#wrap-around-input').checked();
-    print(wrapAround);
     hueChangeRate = select('#hue-change-rate-input').value();
+    select('#wrap-around-input').changed(function(){
+        wrapAround = this.checked();
+    });
+    select('#hue-change-rate-input').changed(function(){
+        hueChangeRate = this.value();
+    });
     select('#reset-button').mousePressed(resetCells);
-    select('#wrap-around-input').mousePressed(setSimSettings);
 }
 
-function draw() {
 
+
+function draw() {
     background(0);
     for(let i = rows-1; i >= 0; i--)
     {
@@ -56,6 +64,7 @@ function draw() {
         {
             if(grid[i][j].hueValue > 0 && grid[i][j].hueValue < 360)
             {
+                
                 //cell state is not empty, draw a sand grain.
                 fill(grid[i][j].hueValue, 150, 255);   
                 rect(i * size, j * size, size, size);
@@ -63,15 +72,25 @@ function draw() {
                 //check the velocity of the cell state
                 let vel = grid[i][j].velocity;
                 let targetCell;
-                //check down as far as the velocity will allow to find the target cell for next frame.
-                for(let k = 1; k <= Math.ceil(vel.y); k++)
+                //loop through all cells in the direction of the velocity until a target cell is found
+                //velocity has an x and y and can be negative or positive
+                let maxValue = Math.max(Math.abs(vel.x), Math.abs(vel.y));
+                for(let k = 1; k <= maxValue; k++)
                 {
-                    if(isValidColsIndex(j+k) && grid[i][j+k].hueValue == 0)
+                    let newI = i + Math.ceil(vel.x * k);
+                    let newJ = j + Math.ceil(vel.y * k);
+                    if(wrapAround)
                     {
-                        targetCell = grid[i][j+k];
-                        grid[i][j].velocity = createVector(0,vel.y - (k - Math.ceil(vel.y)));
+                        newI = getWrapAroundValue(newI, rows);
                     }
-                    else{
+                    if(isValidColsIndex(newJ) && isValidRowIndex(newI) && grid[newI][newJ].hueValue == 0)
+                    {
+                        targetCell = grid[newI][newJ];
+                        break;
+                    }
+                    else if(isValidColsIndex(-newJ) && isValidRowIndex(-newI) && grid[-newI][-newJ].hueValue == 0)
+                    {
+                        targetCell = grid[-newI][-newJ];
                         break;
                     }
                 }
@@ -79,13 +98,14 @@ function draw() {
                 if(targetCell != undefined)
                 {
                     targetCell.hueValue = grid[i][j].hueValue + 360;
-                    targetCell.velocity = grid[i][j].velocity.createVector(0,random(.1, .25));
+                    targetCell.velocity = p5.Vector.add(grid[i][j].velocity, createVector(0,random(.1, .25)));
                     grid[i][j].hueValue = 0;
                     grid[i][j].velocity = createVector(0,1);
                 }
                 //if a target cell was not found, check left and right for a target cell, if one is found, prepare that cell to display sand grain next frame
                 else
                 {
+                    grid[i][j].velocity = createVector(0,1);
                     var randomDir = Math.round(Math.random()) * 2 - 1
                     newI = i + randomDir;
                     if(wrapAround)
@@ -121,6 +141,17 @@ function draw() {
         let randomOffset = Math.round(random(-2, 2));
         let rowIndex = floor(mouseX / size) + randomOffset;
         let colIndex = floor(mouseY / size);
+        if(!isValidColsIndex(colIndex) || !isValidRowIndex(rowIndex))
+        {
+            return;
+        }
+        if(previousMouseX != -1)
+        {
+            var mouseXChange = mouseX - previousMouseX;
+            var mouseYChange = mouseY - previousMouseY;
+
+            grid[rowIndex][colIndex].velocity = createVector(mouseXChange/10, mouseYChange/10);
+        }
 
         if(wrapAround)
         {
@@ -130,7 +161,7 @@ function draw() {
         {
             return;
         }
-        for(let i = 0; i < 100; i++)
+        for(let i = 0; i < 1; i++)
         {
             if(grid[rowIndex][colIndex].hueValue > 0)
             {
@@ -143,6 +174,12 @@ function draw() {
                 hueValue = 1;
             }
         }
+        previousMouseX = mouseX;
+        previousMouseY = mouseY;
+    }
+    else{
+        previousMouseX = -1;
+        previousMouseY = -1;
     }
 
 }

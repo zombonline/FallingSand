@@ -4,6 +4,8 @@ let rows, cols;
 let hueValue = 1;
 let previousMouseX = 0;
 let previousMouseY = 0;
+let gravityForce = 0.1;
+let frictionForce = 0.01;
 
 //SIM SETTINGS
 let wrapAround;
@@ -16,7 +18,10 @@ function cellState(hueValue, velocity)
 }
 
 function setup() {
-    cnv = createCanvas((windowWidth/3)*2, (windowHeight/3)*2);
+    frameRate(240);        
+    let canvasWidth = ((windowWidth/3)*2) - ((windowWidth/3)*2)%size;
+    let canvasHeight = ((windowHeight/3)*2) - ((windowHeight/3)*2)%size;
+    let cnv = createCanvas(canvasWidth, canvasHeight);
     cnv.parent('canvas-container');
     cnv.position((windowWidth/6), (windowHeight/6));    
     rows = Math.floor(width / size);
@@ -28,6 +33,19 @@ function setup() {
     noStroke();
     colorMode(HSB, 360, 255, 255);
     
+    //fill 10% of the grid with sand grains
+    for(let i = 0; i < rows; i++)
+    {
+        for(let j = 0; j < cols/10; j++)
+        {
+            grid[i][j].hueValue = hueValue;
+            hueValue += hueChangeRate;
+            if(hueValue >= 360)
+            {
+                hueValue = 1;
+            }
+        }
+    }
 }
 
 function resetCells()
@@ -36,7 +54,7 @@ function resetCells()
     {
         for(let j = 0; j < rows; j++)
         {
-            grid[j][i] = new cellState(0,createVector(0,1));
+            grid[j][i] = new cellState(0,createVector(0,Math.sign(gravityForce)));
         }
     }
 }
@@ -51,6 +69,21 @@ function setSimSettings()
     select('#hue-change-rate-input').changed(function(){
         hueChangeRate = this.value();
     });
+    select('#gravity-input').changed(function(){
+        if(this.value() == 0 && gravityForce > 0)
+        {
+            this.value(-0.1);
+        }
+        else if(this.value() == 0 && gravityForce < 0)
+        {
+            this.value(0.1);
+        }
+        gravityForce = Number(this.value());
+    });
+    select("#cell-size-input").changed(function(){
+        size = Number(this.value());
+        setup();
+    });
     select('#reset-button').mousePressed(resetCells);
 }
 
@@ -64,7 +97,6 @@ function draw() {
         {
             if(grid[i][j].hueValue > 0 && grid[i][j].hueValue < 360)
             {
-                
                 //cell state is not empty, draw a sand grain.
                 fill(grid[i][j].hueValue, 150, 255);   
                 rect(i * size, j * size, size, size);
@@ -77,8 +109,8 @@ function draw() {
                 let maxValue = Math.max(Math.abs(vel.x), Math.abs(vel.y));
                 for(let k = 1; k <= maxValue; k++)
                 {
-                    let newI = i + Math.ceil(vel.x * k);
-                    let newJ = j + Math.ceil(vel.y * k);
+                    let newI = i + Math.round(vel.x * k/maxValue);
+                    let newJ = j + Math.round(vel.y * k/maxValue);
                     if(wrapAround)
                     {
                         newI = getWrapAroundValue(newI, rows);
@@ -86,41 +118,46 @@ function draw() {
                     if(isValidColsIndex(newJ) && isValidRowIndex(newI) && grid[newI][newJ].hueValue == 0)
                     {
                         targetCell = grid[newI][newJ];
-                        break;
                     }
                     else if(isValidColsIndex(-newJ) && isValidRowIndex(-newI) && grid[-newI][-newJ].hueValue == 0)
                     {
                         targetCell = grid[-newI][-newJ];
-                        break;
                     }
+                    else{break;}
                 }
                 //if a target cell under was found, prepare that cell to display sand grain next frame
                 if(targetCell != undefined)
                 {
                     targetCell.hueValue = grid[i][j].hueValue + 360;
-                    targetCell.velocity = p5.Vector.add(grid[i][j].velocity, createVector(0,random(.1, .25)));
+                    targetCell.velocity = p5.Vector.add(grid[i][j].velocity, createVector(Math.sign(-vel.x)*frictionForce,gravityForce));
                     grid[i][j].hueValue = 0;
-                    grid[i][j].velocity = createVector(0,1);
+                    grid[i][j].velocity = createVector(0,Math.sign(gravityForce));
                 }
                 //if a target cell was not found, check left and right for a target cell, if one is found, prepare that cell to display sand grain next frame
                 else
                 {
-                    grid[i][j].velocity = createVector(0,1);
+                    grid[i][j].velocity = createVector(0,Math.sign(gravityForce));
+                    if(j == 0 || j == cols-1)
+                    {
+                        continue;
+                    }
                     var randomDir = Math.round(Math.random()) * 2 - 1
                     newI = i + randomDir;
                     if(wrapAround)
                     {
                         newI = getWrapAroundValue(i + randomDir, rows);
                     }
-                    if(isValidRowIndex(newI) && isValidColsIndex(j+1) && grid[newI][j+1].hueValue == 0 && grid[newI][j].hueValue == 0)
+                    if(isValidRowIndex(newI) && isValidColsIndex(j+Math.sign(gravityForce)) && grid[newI][j+Math.sign(gravityForce)].hueValue == 0 && grid[newI][j].hueValue == 0)
                     {
-                        grid[newI][j+1].hueValue = grid[i][j].hueValue + 360;
+                        grid[newI][j+Math.sign(gravityForce)].hueValue = grid[i][j].hueValue + 360;
                         grid[i][j].hueValue = 0;
+                        grid[i][j].velocity = createVector(0,Math.sign(gravityForce));
                     }
-                    else if(isValidRowIndex(-newI) && isValidColsIndex(j+1) && grid[-newI][j+1].hueValue == 0 && grid[-newI][j].hueValue == 0)
+                    else if(isValidRowIndex(-newI) && isValidColsIndex(j+Math.sign(gravityForce)) && grid[-newI][j+Math.sign(gravityForce)].hueValue == 0 && grid[-newI][j].hueValue == 0)
                     {
-                        grid[-newI][j+1].hueValue = grid[i][j].hueValue + 360;
+                        grid[-newI][j+Math.sign(gravityForce)].hueValue = grid[i][j].hueValue + 360;
                         grid[i][j].hueValue = 0;
+                        grid[i][j].velocity = createVector(0,Math.sign(gravityForce));
                     }
                 }
             }
@@ -161,18 +198,15 @@ function draw() {
         {
             return;
         }
-        for(let i = 0; i < 1; i++)
+        if(grid[rowIndex][colIndex].hueValue > 0)
         {
-            if(grid[rowIndex][colIndex].hueValue > 0)
-            {
-                continue;
-            }
-            grid[rowIndex][colIndex].hueValue = hueValue;
-            hueValue += hueChangeRate;
-            if(hueValue > 360)
-            {
-                hueValue = 1;
-            }
+            return;
+        }
+        grid[rowIndex][colIndex].hueValue = hueValue;
+        hueValue += hueChangeRate;
+        if(hueValue >= 360)
+        {
+            hueValue = 1;
         }
         previousMouseX = mouseX;
         previousMouseY = mouseY;

@@ -32,20 +32,6 @@ function setup() {
     resetCells();
     noStroke();
     colorMode(HSB, 360, 255, 255);
-    
-    //fill 10% of the grid with sand grains
-    for(let i = 0; i < rows; i++)
-    {
-        for(let j = 0; j < cols/10; j++)
-        {
-            grid[i][j].hueValue = hueValue;
-            hueValue += hueChangeRate;
-            if(hueValue >= 360)
-            {
-                hueValue = 1;
-            }
-        }
-    }
 }
 
 function resetCells()
